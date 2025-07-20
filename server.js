@@ -37,7 +37,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/message", msgRouter);
 
 // if (process.env.NODE_ENV !== "production") {
 //   app.listen(PORT, () => {
