@@ -39,7 +39,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 connectMongoDB().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT,"0.0.0.0", () => {
     console.log(`Server is running on port ${PORT}`);
   });
 });
