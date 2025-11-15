@@ -40,11 +40,11 @@ jobs:
               git init
               git remote add origin https://github.com/safiullah28/twitter-clone-backend.git
               git fetch --depth=1
-              git reset --hard origin/main
+              git reset --hard origin/master
             else
               echo \"Pulling latest changes...\"
               git fetch --depth=1
-              git reset --hard origin/main
+              git reset --hard origin/master
             fi
           '"
 
