@@ -25,7 +25,40 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy backend
+      - name: Prepare deploy folder (init repo if needed)
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} "bash -lc '
+            set -e
+            mkdir -p ${DEPLOY_PATH}
+            cd ${DEPLOY_PATH}
+
+            if [ ! -d .git ]; then
+              echo \"Initializing git repo...\"
+              git init
+              git remote add origin https://github.com/safiullah28/twitter-clone-backend.git
+              git fetch --depth=1
+              git reset --hard origin/main
+            else
+              echo \"Pulling latest changes...\"
+              git fetch --depth=1
+              git reset --hard origin/main
+            fi
+          '"
+
+      - name: Install dependencies
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} "bash -lc '
+            cd ${DEPLOY_PATH}
+            yarn install --frozen-lockfile --production
+          '"
+
+      - name: Create .env and restart PM2
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -37,35 +70,19 @@ jobs:
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} << 'EOF'
-            set -e
-            mkdir -p $DEPLOY_PATH
-            cd $DEPLOY_PATH
+          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} "bash -lc '
+            cd ${DEPLOY_PATH}
+            cat > .env << \"EOT\"
+            MONGO_URI=${MONGO_URI}
+            JWT_SECRET=${JWT_SECRET}
+            PORT=${PORT}
+            NODE_ENV=${NODE_ENV}
+            CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+            CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+            CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+            EOT
 
-            # Pull latest code or clone fresh
-            if [ -d .git ]; then
-              git reset --hard
-              git pull origin main
-            else
-              git clone https://github.com/safiullah28/twitter-clone-backend.git .
-            fi
-
-            # Install dependencies using Yarn
-            yarn install --frozen-lockfile --production
-
-            # Create .env file
-            cat > .env <<EOT
-MONGO_URI=$MONGO_URI
-PORT=$PORT
-JWT_SECRET=$JWT_SECRET
-NODE_ENV=$NODE_ENV
-CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
-CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY
-CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET
-EOT
-
-            # Restart backend with PM2
             pm2 delete ci-backend || true
             pm2 start server.js --name ci-backend --env production
             pm2 save
-EOF
+          '"
