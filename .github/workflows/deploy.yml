@@ -1,62 +1,59 @@
-
+---
 name: Deploy Backend
-
 on:
   push:
     branches:
       - master
-
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ secrets.NODE_VERSION }}
-
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
-
       - name: Prepare deploy folder
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-        run: |
+        run: >
           ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
-set -e
-mkdir -p ${DEPLOY_PATH}
-cd ${DEPLOY_PATH}
 
-if [ ! -d .git ]; then
-  git init
-  git remote add origin https://github.com/safiullah28/twitter-clone-backend.git
-  git fetch --depth=1
-  git reset --hard origin/master
-else
-  git fetch --depth=1
-  git reset --hard origin/master
-fi
-EOF
+          set -e
 
+          mkdir -p ${DEPLOY_PATH}
+
+          cd ${DEPLOY_PATH}
+
+
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://github.com/safiullah28/twitter-clone-backend.git
+            git fetch --depth=1
+            git reset --hard origin/master
+          else
+            git fetch --depth=1
+            git reset --hard origin/master
+          fi
+
+          EOF
       - name: Install dependencies
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
-cd ${DEPLOY_PATH}
-yarn install --production --frozen-lockfile
-EOF
-
+          cd ${DEPLOY_PATH}
+          yarn install --production --frozen-lockfile
+          EOF
       - name: Create .env and restart PM2
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
@@ -69,19 +66,19 @@ EOF
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
-cd ${DEPLOY_PATH}
-cat > .env << 'EOT'
-MONGO_URI=${MONGO_URI}
-JWT_SECRET=${JWT_SECRET}
-PORT=${PORT}
-NODE_ENV=${NODE_ENV}
-CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
-CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
-CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
-EOT
+          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} "
+          cd ${DEPLOY_PATH}
+          cat > .env << 'EOT'
+          MONGO_URI=${MONGO_URI}
+          JWT_SECRET=${JWT_SECRET}
+          PORT=${PORT}
+          NODE_ENV=${NODE_ENV}
+          CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+          CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+          CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+          EOT
 
-pm2 delete ci-backend || true
-pm2 start server.js --name ci-backend
-pm2 save
-EOF
+          pm2 delete ci-backend || true
+          pm2 start server.js --name ci-backend
+          pm2 save
+          "
