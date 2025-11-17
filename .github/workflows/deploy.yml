@@ -44,9 +44,6 @@ jobs:
           fi
 
           "
-
-
-          EOF
       - name: Install dependencies
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
