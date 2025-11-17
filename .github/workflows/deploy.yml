@@ -32,20 +32,20 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
-          set -e
-          mkdir -p $DEPLOY_PATH
-          cd $DEPLOY_PATH
+set -e
+mkdir -p ${DEPLOY_PATH}
+cd ${DEPLOY_PATH}
 
-          if [ ! -d .git ]; then
-            git init
-            git remote add origin https://github.com/safiullah28/twitter-clone-backend.git
-            git fetch --depth=1
-            git reset --hard origin/master
-          else
-            git fetch --depth=1
-            git reset --hard origin/master
-          fi
-          EOF
+if [ ! -d .git ]; then
+  git init
+  git remote add origin https://github.com/safiullah28/twitter-clone-backend.git
+  git fetch --depth=1
+  git reset --hard origin/master
+else
+  git fetch --depth=1
+  git reset --hard origin/master
+fi
+EOF
 
       - name: Install dependencies
         env:
@@ -53,9 +53,9 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
-          cd $DEPLOY_PATH
-          yarn install --production --frozen-lockfile
-          EOF
+cd ${DEPLOY_PATH}
+yarn install --production --frozen-lockfile
+EOF
 
       - name: Create .env and restart PM2
         env:
@@ -69,9 +69,9 @@ jobs:
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << EOF
-cd $DEPLOY_PATH
-cat > .env << EOT
+          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
+cd ${DEPLOY_PATH}
+cat > .env << 'EOT'
 MONGO_URI=${MONGO_URI}
 JWT_SECRET=${JWT_SECRET}
 PORT=${PORT}
