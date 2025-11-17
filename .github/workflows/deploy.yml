@@ -25,14 +25,13 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: >
-          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} << 'EOF'
+          ssh -i ~/.ssh/id_ed25519 root@${DEPLOY_HOST} "
 
           set -e
 
           mkdir -p ${DEPLOY_PATH}
 
           cd ${DEPLOY_PATH}
-
 
           if [ ! -d .git ]; then
             git init
@@ -43,6 +42,9 @@ jobs:
             git fetch --depth=1
             git reset --hard origin/master
           fi
+
+          "
+
 
           EOF
       - name: Install dependencies
